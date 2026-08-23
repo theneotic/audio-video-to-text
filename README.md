@@ -229,6 +229,52 @@ Model selection is a speed-versus-accuracy decision. A smaller model is useful f
 
 Actual speed and accuracy depend on the language, recording quality, background noise, hardware, device, and compute type. Start with `small`, then adjust after testing on representative files.
 
+## Automated CI/CD deployment
+
+The repository includes `.github/workflows/deploy.yml`, which runs the test suite on every push to `main` and can deploy to either Render or a Hugging Face Docker Space after the tests pass. Deployment targets are optional: if the relevant secret or repository variable is not configured, that target is skipped. Pull requests run through the normal test workflow but never deploy.
+
+The workflow supports two deployment paths:
+
+| Target | Best fit | GitHub configuration | Deployment mechanism |
+|---|---|---|---|
+| Render | A conventional web service with a linked Git repository | Secret `RENDER_DEPLOY_HOOK_URL` | Calls the service’s secret deploy hook after CI succeeds |
+| Hugging Face Spaces | A model-oriented demo or Docker-based ML application | Secret `HF_TOKEN` and variable `HF_SPACE_REPO` | Uses the official `huggingface/hub-sync` action to mirror the repository |
+
+### Option A: Render
+
+1. Create a new Render service from this repository, or create it from the included `render.yaml` Blueprint.
+2. Confirm the service uses the repository’s `Dockerfile` and the `main` branch.
+3. Leave automatic deploys disabled in Render if you want GitHub Actions to be the deployment gate. The included Blueprint sets `autoDeployTrigger: off`.
+4. In the Render service Settings page, create or copy the service’s Deploy Hook URL.
+5. In GitHub, open **Settings → Secrets and variables → Actions → New repository secret** and add `RENDER_DEPLOY_HOOK_URL` with the Deploy Hook URL as its value.
+6. Push to `main` or manually run **Deploy transcription app** from the Actions tab.
+
+Render’s Deploy Hook URL is a secret. The workflow sends a POST request only after all three Python test jobs pass. Render may return `202` when another deployment is already in progress; the hook request is still considered accepted by the platform.[2]
+
+### Option B: Hugging Face Spaces
+
+1. Create a new Hugging Face Space using the **Docker** SDK. The Space should be owned by the account represented in `HF_SPACE_REPO`, and its repository name should look like `username/space-name`.
+2. Create a Hugging Face access token with write access to the Space.
+3. Add the token as the GitHub repository secret `HF_TOKEN`.
+4. Add a GitHub repository variable named `HF_SPACE_REPO` with the value `username/space-name`.
+5. Push to `main` or manually run **Deploy transcription app** from the Actions tab.
+
+The workflow uses the official `huggingface/hub-sync` action with `repo_type: space` and `space_sdk: docker`. The included Dockerfile listens on port `7860` by default, which is the port expected by a Docker Space. Docker Space disk contents are not durable across restarts unless persistent storage is configured, so treat generated job files as temporary.[3] [4]
+
+### Deployment secrets and variables
+
+| Name | Type | Required for | Description |
+|---|---|---|---|
+| `RENDER_DEPLOY_HOOK_URL` | GitHub Actions secret | Render | The secret Deploy Hook URL from the Render service Settings page |
+| `HF_TOKEN` | GitHub Actions secret | Hugging Face | A Hugging Face token with write access to the target Space |
+| `HF_SPACE_REPO` | GitHub Actions repository variable | Hugging Face | Target Space ID, for example `username/space-name` |
+
+Never commit tokens, deploy hook URLs, local model files, uploaded media, or generated transcripts. GitHub Actions masks configured secrets in logs, but a deploy hook should still be treated as a credential and regenerated if exposed.[2]
+
+### Manual workflow runs
+
+Both deployment targets can be triggered without a code change from the repository’s **Actions** tab. Select **Deploy transcription app**, choose **Run workflow**, and select the `main` branch. The target is deployed only when its configuration is present; the other target remains skipped.
+
 ## Development
 
 Run the full test suite:
@@ -294,6 +340,9 @@ Do not expose the development server directly to the public internet. If multipl
 ```text
 .
 ├── .github/workflows/ci.yml
+├── .github/workflows/deploy.yml
+├── Dockerfile
+├── render.yaml
 ├── src/media_to_text/
 │   ├── cli.py                 # Command-line interface
 │   ├── core.py                # Transcription and output serialization
@@ -315,3 +364,6 @@ This project is released under the [MIT License](LICENSE). Transcription is powe
 ## References
 
 [1]: https://github.com/SYSTRAN/faster-whisper "SYSTRAN/faster-whisper — Faster Whisper transcription with CTranslate2"
+[2]: https://render.com/docs/deploy-hooks "Render Deploy Hooks"
+[3]: https://huggingface.co/docs/hub/en/spaces-github-actions "Hugging Face Spaces with GitHub Actions"
+[4]: https://huggingface.co/docs/hub/en/spaces-sdks-docker "Hugging Face Docker Spaces"

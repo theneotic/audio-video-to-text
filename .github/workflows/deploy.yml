@@ -1,0 +1,75 @@
+name: Deploy transcription app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install project and test dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Run tests
+        run: python -m pytest
+
+  detect-targets:
+    name: Detect configured deployment targets
+    runs-on: ubuntu-latest
+    outputs:
+      render: ${{ steps.targets.outputs.render }}
+      huggingface: ${{ steps.targets.outputs.huggingface }}
+    steps:
+      - id: targets
+        name: Check deployment configuration
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ vars.HF_SPACE_REPO }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then echo "render=true" >> "$GITHUB_OUTPUT"; else echo "render=false" >> "$GITHUB_OUTPUT"; fi
+          if [ -n "$HF_TOKEN" ] && [ -n "$HF_SPACE_REPO" ]; then echo "huggingface=true" >> "$GITHUB_OUTPUT"; else echo "huggingface=false" >> "$GITHUB_OUTPUT"; fi
+
+  deploy-render:
+    name: Deploy to Render
+    needs: [test, detect-targets]
+    runs-on: ubuntu-latest
+    if: ${{ needs.detect-targets.outputs.render == 'true' }}
+    steps:
+      - name: Trigger Render deploy hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: curl --fail --show-error --silent --request POST "$RENDER_DEPLOY_HOOK_URL"
+
+  deploy-hugging-face:
+    name: Sync to Hugging Face Space
+    needs: [test, detect-targets]
+    runs-on: ubuntu-latest
+    if: ${{ needs.detect-targets.outputs.huggingface == 'true' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Sync files to Docker Space
+        uses: huggingface/hub-sync@v0.1.0
+        with:
+          github_repo_id: ${{ github.repository }}
+          huggingface_repo_id: ${{ vars.HF_SPACE_REPO }}
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+          space_sdk: docker
+          private: false

@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: audio-video-to-text
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    autoDeployTrigger: off
