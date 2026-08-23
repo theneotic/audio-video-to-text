@@ -8,14 +8,55 @@
   const pitchField = document.getElementById('speech-pitch');
   const button = document.getElementById('speech-submit');
   const status = document.getElementById('speech-status');
+  const listenVoiceField = document.getElementById('listen-voice');
+  const listenButton = document.getElementById('listen-speech');
+  const pauseButton = document.getElementById('pause-speech');
+  const stopButton = document.getElementById('stop-speech');
+  const listenStatus = document.getElementById('listen-status');
+  const player = document.getElementById('speech-player');
+  const playerWrap = document.getElementById('speech-player-wrap');
+  const downloadLink = document.getElementById('speech-download-link');
   const workerPath = '/static/vendor/espeakng/espeakng.worker.js';
   const sampleRate = 22050;
   let tts;
   let readyPromise;
+  let deviceVoices = [];
+  let currentAudioUrl;
 
   const setStatus = (message, tone = 'quiet') => {
     status.textContent = message;
     status.dataset.tone = tone;
+  };
+
+  const setListenStatus = (message, tone = 'quiet') => {
+    listenStatus.textContent = message;
+    listenStatus.dataset.tone = tone;
+  };
+
+  const populateDeviceVoices = () => {
+    if (!('speechSynthesis' in window) || !listenVoiceField) {
+      setListenStatus('Device voice preview is unavailable in this browser.', 'error');
+      listenButton.disabled = true;
+      pauseButton.disabled = true;
+      stopButton.disabled = true;
+      return;
+    }
+    deviceVoices = window.speechSynthesis.getVoices();
+    if (!deviceVoices.length) {
+      setListenStatus('Loading voices available on this device…');
+      return;
+    }
+    const previousValue = listenVoiceField.value;
+    listenVoiceField.replaceChildren();
+    deviceVoices.forEach((voice, index) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = `${voice.name} · ${voice.lang}${voice.default ? ' · default' : ''}`;
+      listenVoiceField.appendChild(option);
+    });
+    const englishIndex = deviceVoices.findIndex((voice) => /^en(-|_)/i.test(voice.lang));
+    listenVoiceField.value = deviceVoices[Number(previousValue)] ? previousValue : String(Math.max(englishIndex, 0));
+    setListenStatus('Uses a voice available through your browser or operating system.');
   };
 
   const ensureEngine = () => {
@@ -91,6 +132,52 @@
     }
   });
 
+  const stopDeviceSpeech = () => {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  };
+
+  if ('speechSynthesis' in window) {
+    populateDeviceVoices();
+    window.speechSynthesis.addEventListener('voiceschanged', populateDeviceVoices);
+  } else {
+    populateDeviceVoices();
+  }
+
+  listenButton.addEventListener('click', () => {
+    const text = textField.value.trim();
+    if (!text) {
+      setListenStatus('Please enter some text to listen to.', 'error');
+      textField.focus();
+      return;
+    }
+    stopDeviceSpeech();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const selectedVoice = deviceVoices[Number(listenVoiceField.value)];
+    if (selectedVoice) utterance.voice = selectedVoice;
+    utterance.rate = Math.max(0.5, Math.min(2, Number(speedField.value) / 175));
+    utterance.pitch = Math.max(0.5, Math.min(2, Number(pitchField.value) / 50));
+    utterance.onstart = () => setListenStatus('Playing with the selected device voice…', 'success');
+    utterance.onend = () => setListenStatus('Listen preview finished.');
+    utterance.onerror = () => setListenStatus('The device voice could not play this passage.', 'error');
+    window.speechSynthesis.speak(utterance);
+  });
+
+  pauseButton.addEventListener('click', () => {
+    if (!('speechSynthesis' in window)) return;
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+      setListenStatus('Resumed device-voice preview.');
+    } else {
+      window.speechSynthesis.pause();
+      setListenStatus('Device-voice preview paused.');
+    }
+  });
+
+  stopButton.addEventListener('click', () => {
+    stopDeviceSpeech();
+    setListenStatus('Device-voice preview stopped.');
+  });
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const text = textField.value.trim();
@@ -117,18 +204,22 @@
       await ensureEngine();
       setStatus('Synthesizing in this browser…');
       const audio = await synthesize(text, voiceField.value, speed, pitch);
-      const url = URL.createObjectURL(audio);
+      if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+      currentAudioUrl = URL.createObjectURL(audio);
+      player.src = currentAudioUrl;
+      downloadLink.href = currentAudioUrl;
+      playerWrap.hidden = false;
+      playerWrap.classList.remove('hidden');
       const link = document.createElement('a');
-      link.href = url;
+      link.href = currentAudioUrl;
       link.download = 'media-to-text-private-speech.wav';
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      setStatus('WAV download ready. Your text stayed in this browser.', 'success');
+      setStatus('WAV download ready. You can also listen below; your text stayed in this browser.', 'success');
     } catch (error) {
       console.error(error);
-      setStatus('The local speech engine could not start. Try the Docker deployment or refresh the page.', 'error');
+      setStatus('The local speech engine could not start. Try refreshing the page.', 'error');
     } finally {
       button.disabled = false;
       button.classList.remove('is-working');

@@ -233,9 +233,11 @@ Actual speed and accuracy depend on the language, recording quality, background 
 
 ## Private text-to-speech
 
-The web interface also includes a **Private audio** panel. Paste text, choose an eSpeak NG language voice, adjust speed and pitch, and download the result as WAV. On the free Vercel site, the bundled eSpeak NG WebAssembly worker synthesizes the audio in the browser, so the text stays on the device and no TTS server or API key is needed. When JavaScript is unavailable, or when the app is deployed with the Docker image, the FastAPI `/speak` endpoint can synthesize WAV or MP3 on the server instead.
+The web interface also includes a **Private audio** panel. Paste text, choose an eSpeak NG language voice, adjust speed and pitch, and download the result as WAV. On the free Vercel site, the bundled eSpeak NG WebAssembly worker synthesizes the downloadable audio in the browser, so the text stays on the device and no TTS server or API key is needed. The generated WAV also appears in an in-page audio player so it can be listened to before downloading again.
 
-The Dockerfile installs both `espeak-ng` and `ffmpeg`. eSpeak NG produces the WAV source, and FFmpeg creates the MP3 download when requested. The application limits speech input to 10,000 characters and validates language, speed, pitch, and output format before invoking the binaries. The browser bundle is vendored under `static/vendor/espeakng/` and includes its GPLv3 notice. eSpeak NG is GPLv3-or-later; review its license and the license files included by your base distribution when redistributing the Docker image.[5] [6] [7]
+The panel includes a separate **Listen preview** control that can use the more natural voices exposed by the browser or operating system. The Web Speech API's available voices are device/browser dependent; this preview is not the guaranteed private download path and may use the platform's configured speech service. When JavaScript is unavailable, or when the app is deployed with the Docker image, the FastAPI `/speak` endpoint can synthesize WAV or MP3 on the server instead.
+
+The Dockerfile installs both `espeak-ng` and `ffmpeg`. eSpeak NG produces the WAV source, and FFmpeg creates the MP3 download when requested. The application limits speech input to 10,000 characters and validates language, speed, pitch, and output format before invoking the binaries. The browser bundle is vendored under `static/vendor/espeakng/` and includes its GPLv3 notice. eSpeak NG is GPLv3-or-later; review its license and the license files included by your base distribution when redistributing the Docker image.[5] [6] [7] The device-voice preview follows the browser's Web Speech API behavior.[8] [9]
 
 For local development on Debian/Ubuntu, install the runtime tools with:
 
@@ -400,3 +402,5 @@ real
 [5]: https://github.com/espeak-ng/espeak-ng "eSpeak NG project and license"
 [6]: https://espeak.sourceforge.net/commands.html "eSpeak command-line options"
 [7]: https://github.com/pettarin/espeakng.js-cdn "Browser eSpeak NG WebAssembly bundle"
+[8]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API "MDN Web Speech API overview"
+[9]: https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis "MDN SpeechSynthesis voice and playback API"
