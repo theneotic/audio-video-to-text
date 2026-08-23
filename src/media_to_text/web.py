@@ -62,7 +62,9 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
     """
     package_dir = Path(__file__).parent
     default_job_root = os.getenv("MEDIA_TO_TEXT_JOB_ROOT")
-    root = Path(job_root or default_job_root or Path.cwd() / ".media_to_text_jobs").expanduser().resolve()
+    if not job_root and not default_job_root:
+        default_job_root = "/tmp/media_to_text_jobs" if os.getenv("VERCEL") else str(Path.cwd() / ".media_to_text_jobs")
+    root = Path(job_root or default_job_root).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     templates = Jinja2Templates(directory=str(package_dir / "templates"))
 

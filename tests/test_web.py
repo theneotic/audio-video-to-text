@@ -93,3 +93,10 @@ def test_invalid_download_returns_404(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
     response = client.get("/download/not-a-job/transcript.txt")
     assert response.status_code == 404
+
+
+def test_vercel_uses_writable_tmp_job_directory(monkeypatch) -> None:
+    monkeypatch.delenv("MEDIA_TO_TEXT_JOB_ROOT", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    app = create_app()
+    assert app.state.job_root == Path("/tmp/media_to_text_jobs")
