@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en" class="h-full bg-[#08111d]">
+<html lang="en" class="h-full bg-paper">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#08111d">
+  <meta name="theme-color" content="#f4f1ea">
   <title>{% block title %}Media to Text{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -11,16 +11,20 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Plus Jakarta Sans', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            sans: ['DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            display: ['Source Serif 4', 'Georgia', 'serif'],
+            mono: ['DM Mono', 'ui-monospace', 'monospace'],
           },
           colors: {
-            ink: '#08111d',
-            panel: '#101d2c',
-            teal: '#5eead4',
-            coral: '#fb7185',
+            paper: '#f4f1ea',
+            ink: '#20292b',
+            moss: '#5d6b5f',
+            rust: '#b65f3b',
+            line: '#d9d1c3',
+            wash: '#ebe6dc',
           },
           boxShadow: {
-            glow: '0 0 0 1px rgba(94, 234, 212, .15), 0 24px 80px rgba(0, 0, 0, .30)',
+            paper: '0 12px 30px rgba(50, 45, 35, .08)',
           },
         },
       },
@@ -28,21 +32,16 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
   <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
-<body class="min-h-full overflow-x-hidden bg-ink font-sans text-slate-100 antialiased">
-  <div class="pointer-events-none fixed inset-0 -z-0 overflow-hidden" aria-hidden="true">
-    <div class="absolute -left-24 -top-40 h-[34rem] w-[34rem] rounded-full bg-teal/10 blur-3xl"></div>
-    <div class="absolute -bottom-56 -right-32 h-[34rem] w-[34rem] rounded-full bg-coral/10 blur-3xl"></div>
-    <div class="absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:48px_48px]"></div>
-  </div>
+<body class="min-h-full bg-paper font-sans text-ink antialiased">
   {% block body %}{% endblock %}
   <script>
     document.addEventListener('change', function (event) {
       if (event.target.id !== 'file') return;
-      const name = event.target.files && event.target.files[0] ? event.target.files[0].name : 'Select a file to begin';
+      const name = event.target.files && event.target.files[0] ? event.target.files[0].name : 'Choose a file';
       const target = document.getElementById('file-name');
       if (target) target.textContent = name;
       const zone = document.getElementById('drop-zone');

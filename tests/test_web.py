@@ -20,7 +20,7 @@ def test_home_page_renders(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
     response = client.get("/")
     assert response.status_code == 200
-    assert "Your media." in response.text
+    assert "Make a record" in response.text
     assert "Whisper model" in response.text
     assert "cdn.tailwindcss.com" in response.text
     assert 'hx-post="/transcribe"' in response.text

@@ -1,41 +1,16 @@
 html { scroll-behavior: smooth; }
-
 body { font-feature-settings: "ss01" 1, "cv11" 1; }
 
-.font-mono { font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
-.field-label {
-  display: block;
-  margin-bottom: .5rem;
-  color: rgb(148 163 184);
-  font-size: .7rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.field-control {
-  width: 100%;
-  border: 1px solid rgb(51 65 85 / .75);
-  border-radius: .75rem;
-  background: rgb(8 17 29 / .7);
-  padding: .7rem .8rem;
-  color: rgb(226 232 240);
-  font-size: .75rem;
-  outline: none;
-  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-}
-
-.field-control::placeholder { color: rgb(71 85 105); }
-.field-control:focus { border-color: rgb(94 234 212 / .7); background: rgb(8 17 29 / .9); box-shadow: 0 0 0 3px rgb(94 234 212 / .08); }
-.field-control option { color: #e2e8f0; background: #101d2c; }
+.field-label { display: block; margin-bottom: .5rem; color: #5d6b5f; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.field-control { width: 100%; border: 1px solid #d9d1c3; border-radius: .55rem; background: #faf9f6; padding: .7rem .8rem; color: #20292b; font-size: .75rem; outline: none; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+.field-control::placeholder { color: #a8a39a; }
+.field-control:focus { border-color: #5d6b5f; background: #fff; box-shadow: 0 0 0 3px rgb(93 107 95 / .10); }
+.field-control option { color: #20292b; background: #fff; }
 
 .htmx-indicator { display: none; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: flex; }
-.spinner { display: inline-block; width: .8rem; height: .8rem; border: 2px solid rgb(94 234 212 / .25); border-top-color: #5eead4; border-radius: 999px; animation: spin .8s linear infinite; }
-
-.has-file { border-color: rgb(94 234 212 / .65) !important; background: rgb(94 234 212 / .06) !important; }
-
+.spinner { display: inline-block; width: .75rem; height: .75rem; border: 2px solid rgb(93 107 95 / .22); border-top-color: #5d6b5f; border-radius: 999px; animation: spin .8s linear infinite; }
+.has-file { border-color: #5d6b5f !important; background: #ebe6dc !important; }
 summary::-webkit-details-marker { display: none; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
