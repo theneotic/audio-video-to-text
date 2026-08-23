@@ -77,7 +77,40 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
                 "models": MODEL_OPTIONS,
                 "formats": OUTPUT_FORMATS,
                 "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024),
+                "active_page": "home",
             },
+        )
+
+    @app.get("/about", response_class=HTMLResponse)
+    async def about(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request=request,
+            name="about.html",
+            context={"active_page": "about"},
+        )
+
+    @app.get("/contact", response_class=HTMLResponse)
+    async def contact(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request=request,
+            name="contact.html",
+            context={"active_page": "contact"},
+        )
+
+    @app.get("/privacy", response_class=HTMLResponse)
+    async def privacy(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request=request,
+            name="privacy.html",
+            context={"active_page": "privacy"},
+        )
+
+    @app.get("/terms", response_class=HTMLResponse)
+    async def terms(request: Request) -> HTMLResponse:
+        return templates.TemplateResponse(
+            request=request,
+            name="terms.html",
+            context={"active_page": "terms"},
         )
 
     @app.post("/transcribe", response_class=HTMLResponse)

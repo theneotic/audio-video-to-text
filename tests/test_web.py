@@ -27,6 +27,23 @@ def test_home_page_renders(tmp_path: Path) -> None:
     assert 'hx-target="#app-panel"' in response.text
 
 
+def test_standard_site_pages_render(tmp_path: Path) -> None:
+    client = TestClient(create_app(tmp_path))
+    pages = {
+        "/about": "A quieter way to",
+        "/contact": "Have a question?",
+        "/privacy": "Keep a clear",
+        "/terms": "Use it well.",
+    }
+    for path, heading in pages.items():
+        response = client.get(path)
+        assert response.status_code == 200
+        assert heading in response.text
+        assert 'href="/privacy"' in response.text
+        assert 'href="/terms"' in response.text
+        assert "© 2026 theneotic" in response.text
+
+
 def test_invalid_extension_returns_helpful_error(tmp_path: Path) -> None:
     client = TestClient(create_app(tmp_path))
     response = client.post(

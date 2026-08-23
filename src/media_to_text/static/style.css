@@ -1,5 +1,11 @@
 html { scroll-behavior: smooth; }
 body { font-feature-settings: "ss01" 1, "cv11" 1; }
+.eyebrow { color: #b65f3b; font-family: "DM Mono", ui-monospace, monospace; font-size: .68rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; }
+.nav-link { color: #5d6b5f; font-size: .75rem; font-weight: 600; transition: color .18s ease; }
+.nav-link:hover, .nav-link-active { color: #b65f3b; }
+.footer-heading { color: #5d6b5f; font-family: "DM Mono", ui-monospace, monospace; font-size: .63rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; }
+.footer-link { transition: color .18s ease; }
+.footer-link:hover { color: #b65f3b; }
 
 .field-label { display: block; margin-bottom: .5rem; color: #5d6b5f; font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 .field-control { width: 100%; border: 1px solid #d9d1c3; border-radius: .55rem; background: #faf9f6; padding: .7rem .8rem; color: #20292b; font-size: .75rem; outline: none; transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }

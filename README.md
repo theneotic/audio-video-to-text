@@ -158,7 +158,7 @@ For development with automatic reload:
 uvicorn media_to_text.web:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-The browser UI is implemented as server-rendered HTML. Tailwind CSS handles the visual styling, while HTMX submits the multipart form and swaps the upload panel for a result or error fragment without requiring a client-side application bundle. The Tailwind and HTMX assets are referenced from CDN URLs in `src/media_to_text/templates/base.html`; vendor those assets locally if the deployment must work without external network access.
+The browser UI is implemented as server-rendered HTML. Tailwind CSS handles the visual styling, while HTMX submits the multipart form and swaps the upload panel for a result or error fragment without requiring a client-side application bundle. The shared layout also includes clear ownership, primary navigation, About, Contact & support, Privacy, Terms, GitHub source, and transcription calls to action. The Tailwind and HTMX assets are referenced from CDN URLs in `src/media_to_text/templates/base.html`; vendor those assets locally if the deployment must work without external network access.
 
 ### Web application behavior
 
