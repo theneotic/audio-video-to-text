@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Media to Text</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">LOCAL TRANSCRIPTION WORKSPACE</p>
+      <h1>Turn spoken media into useful text.</h1>
+      <p class="lede">Upload an audio or video file, choose your transcription settings, and download a transcript or subtitle file. Processing runs locally with Faster-Whisper.</p>
+    </section>
+
+    <section class="card">
+      <form action="/transcribe" method="post" enctype="multipart/form-data">
+        <label class="upload-zone" for="file">
+          <span class="upload-icon">↑</span>
+          <span class="upload-title">Choose an audio or video file</span>
+          <span class="upload-hint">MP3, WAV, M4A, MP4, MKV, MOV, WEBM, or FLAC · up to {{ max_upload_mb }} MB</span>
+          <input id="file" name="file" type="file" accept="audio/*,video/*" required>
+        </label>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="model">Whisper model</label>
+            <select id="model" name="model">
+              {% for model in models %}
+              <option value="{{ model }}" {% if model == 'small' %}selected{% endif %}>{{ model }}</option>
+              {% endfor %}
+            </select>
+            <small>Use a smaller model for speed or a larger model for accuracy.</small>
+          </div>
+
+          <div class="field">
+            <label for="output_format">Output format</label>
+            <select id="output_format" name="output_format">
+              <option value="txt" selected>Plain text (.txt)</option>
+              <option value="json">Structured JSON (.json)</option>
+              <option value="srt">SubRip subtitles (.srt)</option>
+              <option value="vtt">WebVTT subtitles (.vtt)</option>
+              <option value="all">All formats</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="language">Language <span class="muted">optional</span></label>
+            <input id="language" name="language" type="text" placeholder="Auto-detect, or e.g. en / hi">
+          </div>
+
+          <div class="field">
+            <label for="task">Task</label>
+            <select id="task" name="task">
+              <option value="transcribe" selected>Transcribe in source language</option>
+              <option value="translate">Translate to English</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="device">Device</label>
+            <select id="device" name="device">
+              <option value="auto" selected>Auto</option>
+              <option value="cpu">CPU</option>
+              <option value="cuda">CUDA GPU</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="compute_type">Compute type</label>
+            <select id="compute_type" name="compute_type">
+              <option value="default" selected>Default</option>
+              <option value="int8">int8</option>
+              <option value="float16">float16</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="checkbox-row" for="word_timestamps">
+          <input id="word_timestamps" name="word_timestamps" type="checkbox" value="true">
+          <span>Include word-level timestamps in JSON output</span>
+        </label>
+
+        <button class="primary-button" type="submit">Transcribe media <span>→</span></button>
+      </form>
+    </section>
+
+    <footer>
+      <span>Media to Text</span>
+      <span>Local-first · Powered by Faster-Whisper</span>
+    </footer>
+  </main>
+</body>
+</html>

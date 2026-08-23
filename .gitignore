@@ -8,5 +8,6 @@ build/
 dist/
 transcripts/
 output/
+.media_to_text_jobs/
 .env
 .DS_Store

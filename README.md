@@ -81,6 +81,25 @@ media-to-text podcast.mp3 --format json --word-timestamps
 
 Run `media-to-text --help` to see every option.
 
+## Browser interface
+
+Install the web dependencies and start the local FastAPI server:
+
+```bash
+python -m pip install -e .
+media-to-text-web
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in a browser. Upload a media file, select a model and output format, then submit the form. The browser interface keeps the uploaded file and generated transcript under `.media_to_text_jobs/` in the working directory. These temporary job files are ignored by Git and can be deleted after use.
+
+For development, the server can also be started with Uvicorn:
+
+```bash
+uvicorn media_to_text.web:app --host 127.0.0.1 --port 8000 --reload
+```
+
+The interface supports the same model, language, translation, device, compute type, and timestamp options as the CLI. The web server is intentionally local by default; place it behind authentication and a reverse proxy before exposing it to a network.
+
 ## Python API
 
 The same functionality is available from Python:
@@ -122,7 +141,7 @@ Run the test suite without downloading a Whisper model:
 python -m pytest
 ```
 
-The tests cover timestamp formatting, JSON/SRT/WebVTT serialization, file creation, parser behavior, and validation. A real transcription smoke test can be added later with a short fixture media file and a deliberately selected model.
+The tests cover timestamp formatting, JSON/SRT/WebVTT serialization, file creation, parser behavior, validation, browser page rendering, upload validation, mocked transcription, and download routing. They do not download a Whisper model.
 
 ## Troubleshooting
 

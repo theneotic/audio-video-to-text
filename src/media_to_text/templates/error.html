@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Something went wrong · Media to Text</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <main class="shell narrow-shell">
+    <section class="card error-card">
+      <p class="eyebrow">TRANSCRIPTION NOT STARTED</p>
+      <h1>We could not process that request.</h1>
+      <p class="lede">{{ message }}</p>
+      <a class="primary-button inline-button" href="/">Return to upload</a>
+    </section>
+  </main>
+</body>
+</html>
