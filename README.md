@@ -229,9 +229,17 @@ Model selection is a speed-versus-accuracy decision. A smaller model is useful f
 
 Actual speed and accuracy depend on the language, recording quality, background noise, hardware, device, and compute type. Start with `small`, then adjust after testing on representative files.
 
+## Vercel deployment
+
+The repository includes a Vercel-compatible FastAPI adapter under `api/index.py`, a `vercel.json` route configuration, and a `requirements.txt` dependency manifest. These files let Vercel expose the existing server-rendered website through its Python function runtime while the source of truth remains the GitHub repository.
+
+To connect the repository in Vercel, create a new project from `theneotic/audio-video-to-text`, keep the root directory at `.`, and deploy the `main` branch. Vercel will use `api/index.py` as the function entrypoint and route the application’s HTML, static assets, About, Contact, Privacy, Terms, upload, and download paths through it. Every new push to `main` can then create a new deployment through Vercel’s Git integration.
+
+The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. For a full transcription service with longer jobs or heavier models, use the Docker deployment path documented for Render or Hugging Face Spaces. Vercel is best suited here for the public website, a lightweight demo, or short test recordings.
+
 ## Automated CI/CD deployment
 
-The repository includes `.github/workflows/deploy.yml`, which runs the test suite on every push to `main` and can deploy to either Render or a Hugging Face Docker Space after the tests pass. Deployment targets are optional: if the relevant secret or repository variable is not configured, that target is skipped. Pull requests run through the normal test workflow but never deploy.
+The repository includes `.github/workflows/deploy.yml`, which runs the test suite on every push to `main` and can deploy to Render or a Hugging Face Docker Space after the tests pass. Deployment targets are optional: if the relevant secret or repository variable is not configured, that target is skipped. Pull requests run through the normal test workflow but never deploy.
 
 The workflow supports two deployment paths:
 
@@ -239,6 +247,7 @@ The workflow supports two deployment paths:
 |---|---|---|---|
 | Render | A conventional web service with a linked Git repository | Secret `RENDER_DEPLOY_HOOK_URL` | Calls the service’s secret deploy hook after CI succeeds |
 | Hugging Face Spaces | A model-oriented demo or Docker-based ML application | Secret `HF_TOKEN` and variable `HF_SPACE_REPO` | Uses the official `huggingface/hub-sync` action to mirror the repository |
+| Vercel | The public website or a lightweight serverless demo | Link the GitHub repository in Vercel | Uses Vercel’s Git integration to deploy `api/index.py` |
 
 ### Option A: Render
 
@@ -343,6 +352,9 @@ Do not expose the development server directly to the public internet. If multipl
 ├── .github/workflows/deploy.yml
 ├── Dockerfile
 ├── render.yaml
+├── vercel.json
+├── requirements.txt
+├── api/index.py
 ├── src/media_to_text/
 │   ├── cli.py                 # Command-line interface
 │   ├── core.py                # Transcription and output serialization
