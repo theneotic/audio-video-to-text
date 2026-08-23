@@ -9,10 +9,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "includeFiles": [
-        "src/media_to_text/templates/**",
-        "src/media_to_text/static/**"
-      ],
+      "includeFiles": "{src/media_to_text/templates/**,src/media_to_text/static/**}",
       "excludeFiles": "{tests/**,.github/**,**/__pycache__/**,*.zip,*.mp4,*.mp3,*.wav}"
     }
   }
