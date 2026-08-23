@@ -63,6 +63,8 @@
       <div class="mt-8 flex flex-col gap-2 border-t border-line pt-4 font-mono text-[10px] uppercase tracking-[.08em] text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 theneotic · Media to Text</span><span>Powered by Faster-Whisper · eSpeak NG</span></div>
     </footer>
   </div>
+  <script src="{{ url_for('static', path='vendor/espeakng/espeakng.js') }}"></script>
+  <script src="{{ url_for('static', path='speech.js') }}"></script>
   <script>
     document.addEventListener('change', function (event) {
       if (event.target.id !== 'file') return;

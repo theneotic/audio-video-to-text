@@ -13,7 +13,7 @@ A local-first Python application for turning audio and video recordings into sea
 | Language detection | Automatically detects the spoken language, or accepts a language code such as `en` or `hi` |
 | Translation | Can translate speech to English with the `translate` task |
 | Output formats | Plain text, structured JSON, SRT subtitles, WebVTT captions, or all formats at once |
-| Private speech downloads | Offline eSpeak NG speech synthesis with WAV or MP3 downloads |
+| Private speech downloads | Browser-local eSpeak NG WebAssembly with WAV downloads; Docker deployments also support server-side MP3 |
 | Interfaces | `media-to-text` CLI, Python API, and `media-to-text-web` FastAPI server |
 | Hardware options | CPU, automatic device selection, or CUDA with a configurable compute type |
 | Word timestamps | Optional word-level timing data in JSON output |
@@ -26,7 +26,7 @@ The workflow is deliberately straightforward:
 2. Faster-Whisper decodes the media and produces timestamped transcription segments.
 3. The application serializes those segments as text, JSON, SRT, or WebVTT.
 4. The CLI writes files to a local directory. The web app presents a preview and download links.
-5. The web app can synthesize pasted text locally with eSpeak NG and return a WAV or MP3 download.
+5. The web app can synthesize pasted text locally in the browser with eSpeak NG WebAssembly and return a WAV download; Docker deployments can also synthesize server-side MP3.
 
 The first use of a model may download model files from the model registry used by Faster-Whisper. After that, the model can be reused from the local cache or supplied as a local model path.[1]
 
@@ -233,9 +233,9 @@ Actual speed and accuracy depend on the language, recording quality, background 
 
 ## Private text-to-speech
 
-The web interface also includes a **Private audio** panel. Paste text, choose an eSpeak NG language voice, adjust speed and pitch, and download the result as WAV or MP3. Speech generation runs the open-source eSpeak NG binary on the application server; it does not send the text to an online TTS API. The application keeps intermediate WAV/MP3 files in a temporary directory and returns the finished audio directly to the browser.
+The web interface also includes a **Private audio** panel. Paste text, choose an eSpeak NG language voice, adjust speed and pitch, and download the result as WAV. On the free Vercel site, the bundled eSpeak NG WebAssembly worker synthesizes the audio in the browser, so the text stays on the device and no TTS server or API key is needed. When JavaScript is unavailable, or when the app is deployed with the Docker image, the FastAPI `/speak` endpoint can synthesize WAV or MP3 on the server instead.
 
-The Dockerfile installs both `espeak-ng` and `ffmpeg`. eSpeak NG produces the WAV source, and FFmpeg creates the MP3 download when requested. The application limits speech input to 10,000 characters and validates language, speed, pitch, and output format before invoking the binaries. eSpeak NG is GPLv3-or-later; review its license and the license files included by your base distribution when redistributing the Docker image.[5] [6]
+The Dockerfile installs both `espeak-ng` and `ffmpeg`. eSpeak NG produces the WAV source, and FFmpeg creates the MP3 download when requested. The application limits speech input to 10,000 characters and validates language, speed, pitch, and output format before invoking the binaries. The browser bundle is vendored under `static/vendor/espeakng/` and includes its GPLv3 notice. eSpeak NG is GPLv3-or-later; review its license and the license files included by your base distribution when redistributing the Docker image.[5] [6] [7]
 
 For local development on Debian/Ubuntu, install the runtime tools with:
 
@@ -250,7 +250,7 @@ The repository includes a Vercel-compatible FastAPI entrypoint under `src/main.p
 
 To connect the repository in Vercel, create a new project from `theneotic/audio-video-to-text`, keep the root directory at `.`, and deploy the `main` branch. Vercel will use the supported `src/main.py` FastAPI entrypoint and route the application’s HTML, static assets, About, Contact, Privacy, Terms, upload, and download paths through it. Every new push to `main` can then create a new deployment through Vercel’s Git integration.
 
-The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. The private speech route additionally requires the `espeak-ng` and `ffmpeg` operating-system binaries, which are installed by the Docker image but are not available in the current Vercel Python function deployment. Use the Docker deployment path on Render or Hugging Face Spaces for a fully functional private speech service. Vercel remains suitable for the public website, a lightweight transcription demo, or short test recordings.
+The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. The free Vercel site uses the bundled browser-local eSpeak NG WebAssembly worker for private WAV downloads, so it does not require the `espeak-ng` or `ffmpeg` operating-system binaries. The server-side `/speak` route and MP3 generation require the Docker image; use that path on Render or Hugging Face Spaces for a server-hosted private speech service. Vercel remains suitable for the public website, browser-local speech, a lightweight transcription demo, or short test recordings.
 
 ## Automated CI/CD deployment
 
@@ -399,3 +399,4 @@ real
 [4]: https://huggingface.co/docs/hub/en/spaces-sdks-docker "Hugging Face Docker Spaces"
 [5]: https://github.com/espeak-ng/espeak-ng "eSpeak NG project and license"
 [6]: https://espeak.sourceforge.net/commands.html "eSpeak command-line options"
+[7]: https://github.com/pettarin/espeakng.js-cdn "Browser eSpeak NG WebAssembly bundle"

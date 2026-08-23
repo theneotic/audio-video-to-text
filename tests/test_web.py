@@ -27,6 +27,8 @@ def test_home_page_renders(tmp_path: Path) -> None:
     assert 'hx-target="#app-panel"' in response.text
     assert 'id="speech-panel"' in response.text
     assert 'action="/speak"' in response.text
+    assert 'vendor/espeakng/espeakng.js' in response.text
+    assert 'speech.js' in response.text
     assert "LOCAL ONLY" in response.text
 
 
@@ -45,6 +47,18 @@ def test_standard_site_pages_render(tmp_path: Path) -> None:
         assert 'href="/privacy"' in response.text
         assert 'href="/terms"' in response.text
         assert "© 2026 theneotic" in response.text
+
+
+def test_browser_speech_assets_are_served(tmp_path: Path) -> None:
+    client = TestClient(create_app(tmp_path))
+    for path, marker in {
+        "/static/speech.js": "wavBlob",
+        "/static/vendor/espeakng/espeakng.js": "function eSpeakNG",
+        "/static/vendor/espeakng/espeakng.worker.js": "eSpeakNGWorker",
+    }.items():
+        response = client.get(path)
+        assert response.status_code == 200
+        assert marker in response.text
 
 
 def test_private_speech_download_returns_audio(tmp_path: Path, monkeypatch) -> None:
