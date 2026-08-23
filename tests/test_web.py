@@ -25,6 +25,9 @@ def test_home_page_renders(tmp_path: Path) -> None:
     assert "cdn.tailwindcss.com" in response.text
     assert 'hx-post="/transcribe"' in response.text
     assert 'hx-target="#app-panel"' in response.text
+    assert 'id="speech-panel"' in response.text
+    assert 'action="/speak"' in response.text
+    assert "LOCAL ONLY" in response.text
 
 
 def test_standard_site_pages_render(tmp_path: Path) -> None:
@@ -42,6 +45,41 @@ def test_standard_site_pages_render(tmp_path: Path) -> None:
         assert 'href="/privacy"' in response.text
         assert 'href="/terms"' in response.text
         assert "© 2026 theneotic" in response.text
+
+
+def test_private_speech_download_returns_audio(tmp_path: Path, monkeypatch) -> None:
+    import media_to_text.web as web
+
+    def fake_speech(*args, **kwargs) -> bytes:
+        assert args[0] == "Hello from the private speech engine."
+        assert kwargs["voice"] == "en"
+        assert kwargs["audio_format"] == "mp3"
+        return b"fake-mp3"
+
+    monkeypatch.setattr(web, "synthesize_speech", fake_speech)
+    client = TestClient(create_app(tmp_path))
+    response = client.post(
+        "/speak",
+        data={
+            "text": "Hello from the private speech engine.",
+            "voice": "en",
+            "speed": "175",
+            "pitch": "50",
+            "audio_format": "mp3",
+        },
+    )
+    assert response.status_code == 200
+    assert response.content == b"fake-mp3"
+    assert response.headers["content-type"] == "audio/mpeg"
+    assert "media-to-text-speech.mp3" in response.headers["content-disposition"]
+    assert response.headers["cache-control"] == "no-store"
+
+
+def test_private_speech_rejects_empty_text(tmp_path: Path) -> None:
+    client = TestClient(create_app(tmp_path))
+    response = client.post("/speak", data={"text": "", "audio_format": "mp3"})
+    assert response.status_code == 400
+    assert "Please enter some text to speak." in response.text
 
 
 def test_invalid_extension_returns_helpful_error(tmp_path: Path) -> None:

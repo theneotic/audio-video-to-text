@@ -13,6 +13,7 @@ A local-first Python application for turning audio and video recordings into sea
 | Language detection | Automatically detects the spoken language, or accepts a language code such as `en` or `hi` |
 | Translation | Can translate speech to English with the `translate` task |
 | Output formats | Plain text, structured JSON, SRT subtitles, WebVTT captions, or all formats at once |
+| Private speech downloads | Offline eSpeak NG speech synthesis with WAV or MP3 downloads |
 | Interfaces | `media-to-text` CLI, Python API, and `media-to-text-web` FastAPI server |
 | Hardware options | CPU, automatic device selection, or CUDA with a configurable compute type |
 | Word timestamps | Optional word-level timing data in JSON output |
@@ -25,6 +26,7 @@ The workflow is deliberately straightforward:
 2. Faster-Whisper decodes the media and produces timestamped transcription segments.
 3. The application serializes those segments as text, JSON, SRT, or WebVTT.
 4. The CLI writes files to a local directory. The web app presents a preview and download links.
+5. The web app can synthesize pasted text locally with eSpeak NG and return a WAV or MP3 download.
 
 The first use of a model may download model files from the model registry used by Faster-Whisper. After that, the model can be reused from the local cache or supplied as a local model path.[1]
 
@@ -229,13 +231,26 @@ Model selection is a speed-versus-accuracy decision. A smaller model is useful f
 
 Actual speed and accuracy depend on the language, recording quality, background noise, hardware, device, and compute type. Start with `small`, then adjust after testing on representative files.
 
+## Private text-to-speech
+
+The web interface also includes a **Private audio** panel. Paste text, choose an eSpeak NG language voice, adjust speed and pitch, and download the result as WAV or MP3. Speech generation runs the open-source eSpeak NG binary on the application server; it does not send the text to an online TTS API. The application keeps intermediate WAV/MP3 files in a temporary directory and returns the finished audio directly to the browser.
+
+The Dockerfile installs both `espeak-ng` and `ffmpeg`. eSpeak NG produces the WAV source, and FFmpeg creates the MP3 download when requested. The application limits speech input to 10,000 characters and validates language, speed, pitch, and output format before invoking the binaries. eSpeak NG is GPLv3-or-later; review its license and the license files included by your base distribution when redistributing the Docker image.[5] [6]
+
+For local development on Debian/Ubuntu, install the runtime tools with:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y espeak-ng ffmpeg
+```
+
 ## Vercel deployment
 
 The repository includes a Vercel-compatible FastAPI entrypoint under `src/main.py`, a `vercel.json` function configuration, and a `requirements.txt` dependency manifest. These files let Vercel expose the existing server-rendered website through its Python function runtime while the source of truth remains the GitHub repository.
 
 To connect the repository in Vercel, create a new project from `theneotic/audio-video-to-text`, keep the root directory at `.`, and deploy the `main` branch. Vercel will use the supported `src/main.py` FastAPI entrypoint and route the application’s HTML, static assets, About, Contact, Privacy, Terms, upload, and download paths through it. Every new push to `main` can then create a new deployment through Vercel’s Git integration.
 
-The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. For a full transcription service with longer jobs or heavier models, use the Docker deployment path documented for Render or Hugging Face Spaces. Vercel is best suited here for the public website, a lightweight demo, or short test recordings.
+The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. The private speech route additionally requires the `espeak-ng` and `ffmpeg` operating-system binaries, which are installed by the Docker image but are not available in the current Vercel Python function deployment. Use the Docker deployment path on Render or Hugging Face Spaces for a fully functional private speech service. Vercel remains suitable for the public website, a lightweight transcription demo, or short test recordings.
 
 ## Automated CI/CD deployment
 
@@ -247,7 +262,7 @@ The workflow supports two deployment paths:
 |---|---|---|---|
 | Render | A conventional web service with a linked Git repository | Secret `RENDER_DEPLOY_HOOK_URL` | Calls the service’s secret deploy hook after CI succeeds |
 | Hugging Face Spaces | A model-oriented demo or Docker-based ML application | Secret `HF_TOKEN` and variable `HF_SPACE_REPO` | Uses the official `huggingface/hub-sync` action to mirror the repository |
-| Vercel | The public website or a lightweight serverless demo | Link the GitHub repository in Vercel | Uses Vercel’s Git integration to deploy `api/index.py` |
+| Vercel | The public website or a lightweight serverless demo | Link the GitHub repository in Vercel | Uses Vercel’s Git integration to deploy `src/main.py`; offline speech requires the Docker target |
 
 ### Option A: Render
 
@@ -292,7 +307,7 @@ Run the full test suite:
 python -m pytest
 ```
 
-The tests exercise the transcription serializers, CLI argument parsing, FastAPI page rendering, upload validation, HTMX fragment responses, mocked transcription, file downloads, and path validation. Tests intentionally mock the model call, so they do not download a Whisper model or require a media fixture.
+The tests exercise the transcription serializers, CLI argument parsing, FastAPI page rendering, upload validation, HTMX fragment responses, mocked transcription, private speech download responses, file downloads, and path validation. Tests intentionally mock the Whisper and speech-engine calls, so they do not download a model or require a media fixture.
 
 The repository uses GitHub Actions to run the test suite on Python 3.10, 3.11, and 3.12 for pushes and pull requests.
 
@@ -340,7 +355,7 @@ The interface references Tailwind CSS and HTMX from CDNs. If the page loads with
 
 ## Security and deployment notes
 
-This project is designed for local use and does not include user authentication, quotas, multi-user job isolation, or persistent job management. Uploaded media and generated files are stored on disk under the configured job directory. Before deploying it beyond a trusted machine, add authentication and authorization, enforce resource quotas, use a dedicated temporary storage volume, configure cleanup, restrict upload types and sizes, and put the application behind HTTPS and a reverse proxy.
+This project is designed for local use and does not include user authentication, quotas, multi-user job isolation, or persistent job management. Uploaded media, generated transcripts, and temporary speech files are processed by the configured server. Before deploying it beyond a trusted machine, add authentication and authorization, enforce resource quotas, use a dedicated temporary storage volume, configure cleanup, restrict upload types and sizes, and put the application behind HTTPS and a reverse proxy. The private speech feature is local to the server only when the deployment uses the supplied Docker image with eSpeak NG and FFmpeg; the current Vercel function deployment does not provide those OS packages.
 
 Do not expose the development server directly to the public internet. If multiple users will submit long recordings, consider moving transcription into a background worker and adding a job queue rather than holding an HTTP request open for the entire model run.
 
@@ -358,7 +373,8 @@ Do not expose the development server directly to the public internet. If multipl
 ├── src/media_to_text/
 │   ├── cli.py                 # Command-line interface
 │   ├── core.py                # Transcription and output serialization
-│   ├── web.py                 # FastAPI routes and upload workflow
+│   ├── speech.py              # Offline eSpeak NG speech synthesis
+│   ├── web.py                 # FastAPI routes and upload/speech workflow
 │   ├── static/style.css       # Small companion stylesheet
 │   └── templates/             # Tailwind/HTMX server-rendered pages
 ├── tests/
@@ -381,3 +397,5 @@ real
 [2]: https://render.com/docs/deploy-hooks "Render Deploy Hooks"
 [3]: https://huggingface.co/docs/hub/en/spaces-github-actions "Hugging Face Spaces with GitHub Actions"
 [4]: https://huggingface.co/docs/hub/en/spaces-sdks-docker "Hugging Face Docker Spaces"
+[5]: https://github.com/espeak-ng/espeak-ng "eSpeak NG project and license"
+[6]: https://espeak.sourceforge.net/commands.html "eSpeak command-line options"

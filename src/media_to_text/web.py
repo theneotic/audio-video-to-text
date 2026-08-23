@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.staticfiles import StaticFiles
 
 from .core import transcribe_file, write_outputs
+from .speech import AUDIO_FORMATS, DEFAULT_PITCH, DEFAULT_SPEED, VOICE_OPTIONS, synthesize_speech
 
 SUPPORTED_EXTENSIONS = {
     ".aac",
@@ -82,6 +83,11 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
                 "formats": OUTPUT_FORMATS,
                 "max_upload_mb": MAX_UPLOAD_BYTES // (1024 * 1024),
                 "active_page": "home",
+                "speech_voices": VOICE_OPTIONS,
+                "speech_formats": AUDIO_FORMATS,
+                "speech_max_chars": 10_000,
+                "speech_default_speed": DEFAULT_SPEED,
+                "speech_default_pitch": DEFAULT_PITCH,
             },
         )
 
@@ -115,6 +121,38 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
             request=request,
             name="terms.html",
             context={"active_page": "terms"},
+        )
+
+    @app.post("/speak")
+    async def speak_endpoint(
+        request: Request,
+        text: str = Form(""),
+        voice: str = Form("en"),
+        speed: int = Form(DEFAULT_SPEED),
+        pitch: int = Form(DEFAULT_PITCH),
+        audio_format: str = Form("mp3"),
+    ) -> Response:
+        try:
+            audio = await run_in_threadpool(
+                synthesize_speech,
+                text,
+                voice=voice,
+                speed=speed,
+                pitch=pitch,
+                audio_format=audio_format,
+            )
+        except (ValueError, FileNotFoundError, RuntimeError, OSError) as exc:
+            # TTS is a normal browser form, so return the full error page.
+            return _error_response(request, str(exc))
+
+        media_type, extension = AUDIO_FORMATS[audio_format]
+        return Response(
+            content=audio,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="media-to-text-speech.{extension}"',
+                "Cache-Control": "no-store",
+            },
         )
 
     @app.post("/transcribe", response_class=HTMLResponse)

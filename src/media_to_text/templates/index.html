@@ -22,6 +22,7 @@
       </div>
     </div>
 
+    <div class="space-y-6">
     <section id="app-panel" class="rounded-2xl border border-line bg-white p-6 shadow-paper sm:p-8">
       <div class="mb-7 flex items-start justify-between gap-6 border-b border-line pb-5">
         <div><p class="font-mono text-[10px] uppercase tracking-[.15em] text-moss">New transcription</p><h2 class="mt-2 font-display text-3xl tracking-[-.035em] text-ink">Start with a file</h2></div>
@@ -50,6 +51,27 @@
         <div id="loading-state" class="htmx-indicator mt-4 flex items-center justify-center gap-2 text-xs text-moss"><span class="spinner"></span> Transcribing — this can take a moment</div>
       </form>
     </section>
+
+      <section id="speech-panel" class="rounded-2xl border border-line bg-white p-6 shadow-paper sm:p-8">
+        <div class="mb-7 flex items-start justify-between gap-6 border-b border-line pb-5">
+          <div><p class="font-mono text-[10px] uppercase tracking-[.15em] text-rust">Private audio</p><h2 class="mt-2 font-display text-3xl tracking-[-.035em] text-ink">Give the words a voice</h2></div>
+          <span class="rounded-md bg-wash px-2 py-1 font-mono text-[10px] text-moss">LOCAL ONLY</span>
+        </div>
+
+        <form action="/speak" method="post">
+          <div><label for="speech-text" class="field-label">Text to speak</label><textarea id="speech-text" name="text" rows="6" maxlength="{{ speech_max_chars }}" required placeholder="Paste a passage, a script, or a transcript here…" class="field-control resize-y"></textarea><p class="mt-2 text-[11px] leading-5 text-slate-500">Up to {{ speech_max_chars }} characters. Text is synthesized by the server’s offline speech engine and returned as a download.</p></div>
+
+          <div class="mt-5 grid gap-4 sm:grid-cols-2">
+            <div><label for="speech-voice" class="field-label">Language / voice</label><select id="speech-voice" name="voice" class="field-control">{% for voice, label in speech_voices.items() %}<option value="{{ voice }}">{{ label }}</option>{% endfor %}</select></div>
+            <div><label for="speech-format" class="field-label">Download as</label><select id="speech-format" name="audio_format" class="field-control">{% for extension, details in speech_formats.items() %}<option value="{{ extension }}">{{ details[1]|upper }}</option>{% endfor %}</select></div>
+            <div><label for="speech-speed" class="field-label">Speed <span class="font-normal normal-case tracking-normal text-slate-400">words per minute</span></label><input id="speech-speed" name="speed" type="number" min="80" max="400" value="{{ speech_default_speed }}" class="field-control"></div>
+            <div><label for="speech-pitch" class="field-label">Pitch <span class="font-normal normal-case tracking-normal text-slate-400">0–99</span></label><input id="speech-pitch" name="pitch" type="number" min="0" max="99" value="{{ speech_default_pitch }}" class="field-control"></div>
+          </div>
+
+          <button type="submit" class="mt-6 flex w-full items-center justify-center gap-3 rounded-lg bg-ink px-5 py-3.5 text-sm font-bold text-paper transition hover:bg-moss"><span>Generate private audio</span><span class="text-base text-rust">↓</span></button>
+        </form>
+      </section>
+    </div>
   </section>
 
   <footer class="flex flex-col gap-2 border-t border-line py-5 font-mono text-[10px] uppercase tracking-[.08em] text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>Built for focused listening.</span><span>Powered by Faster-Whisper</span></footer>

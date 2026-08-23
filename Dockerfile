@@ -5,6 +5,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     HOME=/home/app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg espeak-ng \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home --uid 1000 appuser
 WORKDIR /home/app
 
