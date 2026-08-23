@@ -1,65 +1,12 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Transcript · Media to Text</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
-</head>
-<body>
-  <main class="shell">
-    <section class="result-header">
-      <div>
-        <p class="eyebrow">TRANSCRIPTION COMPLETE</p>
-        <h1>{{ filename }}</h1>
-        <p class="lede">Review the transcript below or download the generated file in your preferred format.</p>
-      </div>
-      <a class="secondary-button" href="/">New transcription</a>
-    </section>
-
-    <section class="stats-grid">
-      <div class="stat-card"><span>Language</span><strong>{{ result.language or 'Unknown' }}</strong></div>
-      <div class="stat-card"><span>Model</span><strong>{{ model }}</strong></div>
-      <div class="stat-card"><span>Task</span><strong>{{ task }}</strong></div>
-      <div class="stat-card"><span>Segments</span><strong>{{ result.segments|length }}</strong></div>
-    </section>
-
-    <section class="card transcript-card">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">PREVIEW</p>
-          <h2>Transcript</h2>
-        </div>
-        {% if result.duration is not none %}<span class="duration">{{ '%.1f'|format(result.duration) }} seconds</span>{% endif %}
-      </div>
-      {% if result.text %}
-      <pre class="transcript">{{ result.text }}</pre>
-      {% else %}
-      <p class="empty-state">No speech was detected in this file.</p>
-      {% endif %}
-    </section>
-
-    <section class="card downloads-card">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">EXPORT</p>
-          <h2>Download files</h2>
-        </div>
-      </div>
-      <div class="download-list">
-        {% for item in files %}
-        <a class="download-link" href="{{ item.href }}">
-          <span><strong>{{ item.format }}</strong><small>transcript.{{ item.format|lower }}</small></span>
-          <span>↓</span>
-        </a>
-        {% endfor %}
-      </div>
-    </section>
-
-    <footer>
-      <span>Media to Text</span>
-      <span>Local-first · Powered by Faster-Whisper</span>
-    </footer>
-  </main>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Transcript · Media to Text{% endblock %}
+{% block body %}
+<main class="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-6 sm:px-8 lg:px-12">
+  <nav class="flex items-center justify-between border-b border-white/10 pb-6">
+    <a href="/" class="group flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-xl bg-teal text-ink shadow-[0_0_26px_rgba(94,234,212,.22)]">⌁</span><span class="text-sm font-extrabold tracking-tight text-white">media<span class="text-teal">/</span>text</span></a>
+    <a href="/" class="text-xs font-bold text-slate-500 transition hover:text-teal">New transcription →</a>
+  </nav>
+  <section class="flex flex-1 items-center py-10"><div id="app-panel" class="w-full">{% include "result_fragment.html" %}</div></section>
+  <footer class="flex flex-col gap-2 border-t border-white/10 py-6 text-[11px] text-slate-600 sm:flex-row sm:items-center sm:justify-between"><span>Built for focused listening.</span><span>Powered by Faster-Whisper · Runs on your machine</span></footer>
+</main>
+{% endblock %}

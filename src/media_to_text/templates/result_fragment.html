@@ -1,0 +1,21 @@
+<div class="rounded-[1.4rem] border border-teal/20 bg-panel/90 p-5 sm:p-7">
+  <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <div class="inline-flex items-center gap-2 rounded-full border border-teal/20 bg-teal/5 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[.18em] text-teal"><span class="h-1.5 w-1.5 rounded-full bg-teal"></span> Complete</div>
+      <h2 class="mt-4 break-words text-2xl font-extrabold tracking-[-.04em] text-white">{{ filename }}</h2>
+      <p class="mt-2 text-xs text-slate-500">{{ result.segments|length }} segments · {{ result.language or 'language unknown' }} · {{ model }} model</p>
+    </div>
+    <a href="/" class="shrink-0 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-slate-400 transition hover:border-teal/40 hover:text-teal">← New file</a>
+  </div>
+
+  <div class="mt-6 overflow-hidden rounded-xl border border-white/10 bg-ink/45">
+    <div class="flex items-center justify-between border-b border-white/10 px-4 py-3"><span class="font-mono text-[10px] uppercase tracking-[.18em] text-slate-500">Transcript preview</span>{% if result.duration is not none %}<span class="font-mono text-[10px] text-slate-600">{{ '%.1f'|format(result.duration) }}s</span>{% endif %}</div>
+    {% if result.text %}<pre class="max-h-[26rem] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs leading-7 text-slate-300">{{ result.text }}</pre>{% else %}<p class="p-5 text-sm text-slate-500">No speech was detected in this file.</p>{% endif %}
+  </div>
+
+  <div class="mt-5 grid gap-2 sm:grid-cols-2">
+    {% for item in files %}
+    <a href="{{ item.href }}" class="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[.025] px-4 py-3 transition hover:border-teal/35 hover:bg-teal/[.04]"><span><span class="block text-xs font-extrabold text-slate-200">{{ item.format }}</span><span class="mt-0.5 block font-mono text-[10px] text-slate-600">transcript.{{ item.format|lower }}</span></span><span class="text-lg text-teal transition group-hover:-translate-y-0.5">↓</span></a>
+    {% endfor %}
+  </div>
+</div>

@@ -1,19 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Something went wrong · Media to Text</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
-</head>
-<body>
-  <main class="shell narrow-shell">
-    <section class="card error-card">
-      <p class="eyebrow">TRANSCRIPTION NOT STARTED</p>
-      <h1>We could not process that request.</h1>
-      <p class="lede">{{ message }}</p>
-      <a class="primary-button inline-button" href="/">Return to upload</a>
-    </section>
-  </main>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Could not start · Media to Text{% endblock %}
+{% block body %}
+<main class="relative z-10 mx-auto flex min-h-screen w-full max-w-3xl flex-col px-5 py-6 sm:px-8 lg:px-12">
+  <nav class="border-b border-white/10 pb-6"><a href="/" class="group flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-xl bg-teal text-ink">⌁</span><span class="text-sm font-extrabold tracking-tight text-white">media<span class="text-teal">/</span>text</span></a></nav>
+  <section class="flex flex-1 items-center py-12"><div id="app-panel" class="w-full">{% include "error_fragment.html" %}</div></section>
+  <footer class="border-t border-white/10 py-6 text-[11px] text-slate-600">Powered by Faster-Whisper · Runs on your machine</footer>
+</main>
+{% endblock %}

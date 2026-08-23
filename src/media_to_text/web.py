@@ -33,10 +33,10 @@ MAX_UPLOAD_BYTES = 500 * 1024 * 1024
 
 
 def _error_response(request: Request, message: str) -> HTMLResponse:
+    templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+    template_name = "error_fragment.html" if request.headers.get("HX-Request") == "true" else "error.html"
     return HTMLResponse(
-        Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-        .get_template("error.html")
-        .render(request=request, message=message),
+        templates.get_template(template_name).render(request=request, message=message),
         status_code=400,
     )
 
@@ -142,7 +142,7 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
             )
         return templates.TemplateResponse(
             request=request,
-            name="result.html",
+            name=("result_fragment.html" if request.headers.get("HX-Request") == "true" else "result.html"),
             context={
                 "filename": filename,
                 "result": result,

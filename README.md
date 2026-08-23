@@ -98,7 +98,7 @@ For development, the server can also be started with Uvicorn:
 uvicorn media_to_text.web:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-The interface supports the same model, language, translation, device, compute type, and timestamp options as the CLI. The web server is intentionally local by default; place it behind authentication and a reverse proxy before exposing it to a network.
+The interface supports the same model, language, translation, device, compute type, and timestamp options as the CLI. The UI is built with Tailwind CSS and uses HTMX to submit the multipart form and replace the upload panel with a result or error fragment without a full-page navigation. Tailwind CSS and HTMX are loaded from their pinned CDN URLs in `templates/base.html`; vendor these assets locally if the deployment must work without external network access. The web server is intentionally local by default; place it behind authentication and a reverse proxy before exposing it to a network.
 
 ## Python API
 
