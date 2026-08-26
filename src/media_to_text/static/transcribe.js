@@ -76,20 +76,38 @@
     return new Blob([buffer], { type: "audio/wav" });
   }
 
-  async function compressMediaToAudio(file) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) {
-      throw new Error(
-        "This browser cannot extract audio locally. Try a shorter recording or use the Docker deployment."
-      );
-    }
+  async function decodeAudioLocally(file, AudioContextClass) {
+    const context = new AudioContextClass();
+    try {
+      const encoded = await file.arrayBuffer();
+      const decoded = await context.decodeAudioData(encoded);
+      if (!decoded.numberOfChannels || !decoded.length) {
+        throw new Error("No audio track was found in this media file.");
+      }
 
+      const outputLength = Math.ceil(decoded.duration * TARGET_SAMPLE_RATE);
+      const OfflineContextClass = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      if (!OfflineContextClass) throw new Error("Offline audio processing is unavailable.");
+      const offline = new OfflineContextClass(1, outputLength, TARGET_SAMPLE_RATE);
+      const source = offline.createBufferSource();
+      source.buffer = decoded;
+      source.connect(offline.destination);
+      source.start(0);
+      const rendered = await offline.startRendering();
+      return wavBlob(rendered.getChannelData(0), TARGET_SAMPLE_RATE);
+    } finally {
+      await context.close().catch(() => {});
+    }
+  }
+
+  async function extractWithMediaElement(file, AudioContextClass) {
     const sourceUrl = URL.createObjectURL(file);
     const media = document.createElement("video");
     media.preload = "auto";
     media.playsInline = true;
     media.muted = true;
     media.src = sourceUrl;
+    media.load();
 
     let context;
     let processor;
@@ -163,6 +181,32 @@
       media.load();
       URL.revokeObjectURL(sourceUrl);
     }
+  }
+
+  async function compressMediaToAudio(file) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      throw new Error(
+        "This browser cannot extract audio locally. Try a shorter recording or use the Docker deployment."
+      );
+    }
+
+    let audioBlob;
+    try {
+      audioBlob = await decodeAudioLocally(file, AudioContextClass);
+    } catch (decodeError) {
+      // Some browsers cannot decode a video container through decodeAudioData;
+      // use the media-element path as a compatibility fallback.
+      audioBlob = await extractWithMediaElement(file, AudioContextClass);
+    }
+
+    if (!audioBlob.size) throw new Error("No audio track was found in this media file.");
+    if (audioBlob.size > SAFE_REQUEST_BYTES) {
+      throw new Error(
+        `The prepared audio is ${readableSize(audioBlob.size)}. Try a shorter recording; the free site needs it below 4 MB.`
+      );
+    }
+    return audioBlob;
   }
 
   async function submitLargeFile(form, file) {
