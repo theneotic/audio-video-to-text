@@ -23,6 +23,9 @@
   }
 
   function waitFor(target, eventName) {
+    if (eventName === "loadedmetadata" && target.readyState >= 1) {
+      return Promise.resolve();
+    }
     return new Promise((resolve, reject) => {
       const onEvent = () => {
         cleanup();
