@@ -2,15 +2,11 @@
   "use strict";
 
   // Vercel Functions accept a maximum 4.5 MB request body. Leave room for
-  // multipart headers by keeping browser-compressed uploads below 4 MB.
+  // multipart headers by keeping browser-prepared uploads below 4 MB.
   const SAFE_REQUEST_BYTES = 4 * 1024 * 1024;
   const MAX_CLIENT_FILE_BYTES = 500 * 1024 * 1024;
-  const AUDIO_MIME_TYPES = [
-    "audio/webm;codecs=opus",
-    "audio/webm",
-    "audio/ogg;codecs=opus",
-    "audio/ogg",
-  ];
+  const TARGET_SAMPLE_RATE = 8000;
+  const EXTRACTION_RATE = 4;
 
   const byId = (id) => document.getElementById(id);
 
@@ -24,11 +20,6 @@
   function readableSize(bytes) {
     if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-
-  function supportedRecorderType() {
-    if (!window.MediaRecorder || typeof MediaRecorder.isTypeSupported !== "function") return "";
-    return AUDIO_MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) || "";
   }
 
   function waitFor(target, eventName) {
@@ -50,11 +41,43 @@
     });
   }
 
+  function writeAscii(view, offset, text) {
+    for (let index = 0; index < text.length; index += 1) {
+      view.setUint8(offset + index, text.charCodeAt(index));
+    }
+  }
+
+  function wavBlob(samples, sampleRate) {
+    // Compact unsigned 8-bit mono PCM is intentionally used here. It keeps
+    // several minutes of speech below Vercel's request-body limit while still
+    // preserving the frequency range needed for speech recognition.
+    const buffer = new ArrayBuffer(44 + samples.length);
+    const view = new DataView(buffer);
+    writeAscii(view, 0, "RIFF");
+    view.setUint32(4, 36 + samples.length, true);
+    writeAscii(view, 8, "WAVE");
+    writeAscii(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true);
+    writeAscii(view, 36, "data");
+    view.setUint32(40, samples.length, true);
+    for (let index = 0; index < samples.length; index += 1) {
+      const normalized = Math.max(-1, Math.min(1, samples[index]));
+      view.setUint8(44 + index, Math.round((normalized + 1) * 127.5));
+    }
+    return new Blob([buffer], { type: "audio/wav" });
+  }
+
   async function compressMediaToAudio(file) {
-    const recorderType = supportedRecorderType();
-    if (!recorderType) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
       throw new Error(
-        "This browser cannot compress a large video locally. Try a shorter recording or use the Docker deployment."
+        "This browser cannot extract audio locally. Try a shorter recording or use the Docker deployment."
       );
     }
 
@@ -66,56 +89,73 @@
     media.src = sourceUrl;
 
     let context;
-    let recorder;
-    let chunks = [];
+    let processor;
+    let samples = [];
+    let sum = 0;
+    let count = 0;
+    let stopped = false;
+
     try {
       await waitFor(media, "loadedmetadata");
       if (!Number.isFinite(media.duration) || media.duration <= 0) {
-        throw new Error("The browser could not determine the video duration.");
+        throw new Error("The browser could not determine the media duration.");
       }
 
-      context = new AudioContext();
+      context = new AudioContextClass();
+      const step = Math.max(1, Math.round(context.sampleRate / TARGET_SAMPLE_RATE));
+      const outputSampleRate = Math.round(context.sampleRate / step);
+      const estimatedBytes = Math.ceil(media.duration * outputSampleRate) + 44;
+      if (estimatedBytes > SAFE_REQUEST_BYTES) {
+        throw new Error(
+          `This recording is ${Math.round(media.duration / 60)} minutes long. The free site needs audio under 4 MB; use the Docker deployment for longer recordings.`
+        );
+      }
+
       const source = context.createMediaElementSource(media);
-      const capture = context.createMediaStreamDestination();
+      // ScriptProcessorNode remains broadly available in Chromium and lets us
+      // collect decoded media audio without uploading the original video.
+      processor = context.createScriptProcessor(4096, 2, 1);
       const silentGain = context.createGain();
       silentGain.gain.value = 0;
-      source.connect(capture);
-      source.connect(silentGain);
+      source.connect(processor);
+      processor.connect(silentGain);
       silentGain.connect(context.destination);
 
-      recorder = new MediaRecorder(capture.stream, {
-        mimeType: recorderType,
-        audioBitsPerSecond: 32000,
-      });
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size) chunks.push(event.data);
+      processor.onaudioprocess = (event) => {
+        const input = event.inputBuffer;
+        const channels = input.numberOfChannels;
+        const frames = input.length;
+        const first = input.getChannelData(0);
+        const second = channels > 1 ? input.getChannelData(1) : first;
+        for (let index = 0; index < frames; index += 1) {
+          sum += (first[index] + second[index]) / 2;
+          count += 1;
+          if (count >= step) {
+            samples.push(sum / count);
+            sum = 0;
+            count = 0;
+          }
+        }
       };
 
-      const stopped = new Promise((resolve, reject) => {
-        recorder.addEventListener("stop", resolve, { once: true });
-        recorder.addEventListener("error", () => reject(new Error("The browser could not encode the audio.")), { once: true });
+      const complete = new Promise((resolve, reject) => {
+        media.addEventListener("ended", () => {
+          stopped = true;
+          resolve();
+        }, { once: true });
+        media.addEventListener("error", () => reject(new Error("The browser could not play this media file.")), { once: true });
       });
 
       await context.resume();
-      recorder.start(250);
-      media.addEventListener("ended", () => {
-        if (recorder.state !== "inactive") recorder.stop();
-      }, { once: true });
+      media.playbackRate = EXTRACTION_RATE;
       await media.play();
-      await stopped;
-
-      const audioBlob = new Blob(chunks, { type: recorderType });
-      if (!audioBlob.size) throw new Error("No audio track was found in this video.");
-      if (audioBlob.size > SAFE_REQUEST_BYTES) {
-        throw new Error(
-          `The compressed audio is ${readableSize(audioBlob.size)}. Try a shorter recording; the free site needs it below 4 MB.`
-        );
-      }
-      return audioBlob;
+      await complete;
+      if (!samples.length) throw new Error("No audio track was found in this media file.");
+      return wavBlob(samples, outputSampleRate);
     } finally {
-      if (recorder && recorder.state !== "inactive") recorder.stop();
+      if (!stopped && media && !media.paused) media.pause();
+      if (processor) processor.disconnect();
       if (context) await context.close().catch(() => {});
-      media.pause();
       media.removeAttribute("src");
       media.load();
       URL.revokeObjectURL(sourceUrl);
@@ -135,14 +175,14 @@
 
     if (button) button.disabled = true;
     if (loading) loading.classList.remove("htmx-indicator");
-    setStatus(`Compressing ${readableSize(file.size)} of video audio locally…`, "working");
+    setStatus(`Preparing ${readableSize(file.size)} of media locally…`, "working");
 
     try {
       const audioBlob = await compressMediaToAudio(file);
       const data = new FormData(form);
-      data.set("file", audioBlob, `${file.name.replace(/\.[^.]+$/, "")}.webm`);
+      data.set("file", audioBlob, `${file.name.replace(/\.[^.]+$/, "")}.wav`);
       data.set("original_filename", file.name);
-      setStatus(`Uploading ${readableSize(audioBlob.size)} of browser-compressed audio…`, "working");
+      setStatus(`Uploading ${readableSize(audioBlob.size)} of browser-prepared audio…`, "working");
 
       const response = await fetch(form.action, {
         method: "POST",
