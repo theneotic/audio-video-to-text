@@ -252,7 +252,9 @@ The repository includes a Vercel-compatible FastAPI entrypoint under `src/main.p
 
 To connect the repository in Vercel, create a new project from `theneotic/audio-video-to-text`, keep the root directory at `.`, and deploy the `main` branch. Vercel will use the supported `src/main.py` FastAPI entrypoint and route the application’s HTML, static assets, About, Contact, Privacy, Terms, upload, and download paths through it. Every new push to `main` can then create a new deployment through Vercel’s Git integration.
 
-The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. The free Vercel site uses the bundled browser-local eSpeak NG WebAssembly worker for private WAV downloads, so it does not require the `espeak-ng` or `ffmpeg` operating-system binaries. The server-side `/speak` route and MP3 generation require the Docker image; use that path on Render or Hugging Face Spaces for a server-hosted private speech service. Vercel remains suitable for the public website, browser-local speech, a lightweight transcription demo, or short test recordings.
+The Vercel adapter stores job files under `/tmp/media_to_text_jobs`, because serverless functions should not be treated as permanent disk storage. Serverless execution, request-size, memory, and timeout limits vary by Vercel plan and can make long recordings or large Whisper models a poor fit. The free Vercel site uses the bundled browser-local eSpeak NG WebAssembly worker for private WAV downloads, so it does not require the `espeak-ng` or `ffmpeg` operating-system binaries. The server-side `/speak` route and MP3 generation require the Docker image; use that path on Render or Hugging Face Spaces for a server-hosted private speech service.
+
+Vercel Functions impose a 4.5 MB request-body limit.[10] To keep the free website useful for larger recordings, the transcription form now detects files above 4 MB and uses the browser’s Web Audio API and MediaRecorder to extract and compress the audio track locally into a low-bitrate WebM/Opus upload. The original video is not sent through the Vercel Function, and the original filename is retained on the result page. This fallback requires a browser with MediaRecorder and an AudioContext; browsers that cannot encode the audio receive a clear message recommending a shorter file or the Docker deployment. Vercel remains suitable for the public website, browser-local speech, compressed short-to-medium recordings, or lightweight transcription demos, while sustained or high-accuracy workloads should use the Docker image.
 
 ## Automated CI/CD deployment
 
@@ -378,6 +380,7 @@ Do not expose the development server directly to the public internet. If multipl
 │   ├── speech.py              # Offline eSpeak NG speech synthesis
 │   ├── web.py                 # FastAPI routes and upload/speech workflow
 │   ├── static/style.css       # Small companion stylesheet
+│   ├── static/transcribe.js   # Browser-local large-file audio fallback
 │   └── templates/             # Tailwind/HTMX server-rendered pages
 ├── tests/
 │   ├── test_core.py
@@ -404,3 +407,5 @@ real
 [7]: https://github.com/pettarin/espeakng.js-cdn "Browser eSpeak NG WebAssembly bundle"
 [8]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API "MDN Web Speech API overview"
 [9]: https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesis "MDN SpeechSynthesis voice and playback API"
+
+[10]: https://vercel.com/docs/functions/limitations "Vercel Functions Limits"

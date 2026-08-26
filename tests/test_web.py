@@ -26,6 +26,9 @@ def test_home_page_renders(tmp_path: Path) -> None:
     assert 'hx-post="/transcribe"' in response.text
     assert 'hx-target="#app-panel"' in response.text
     assert 'id="speech-panel"' in response.text
+    assert 'id="transcription-form"' in response.text
+    assert 'transcribe.js' in response.text
+    assert 'id="upload-status"' in response.text
     assert 'action="/speak"' in response.text
     assert 'vendor/espeakng/espeakng.js' in response.text
     assert 'speech.js' in response.text
@@ -134,10 +137,16 @@ def test_transcription_page_and_downloads_render(tmp_path: Path, monkeypatch) ->
         "/transcribe",
         headers={"HX-Request": "true"},
         files={"file": ("sample.wav", b"fake audio", "audio/wav")},
-        data={"model": "tiny", "output_format": "all", "language": "en"},
+        data={
+            "original_filename": "interview.mp4",
+            "model": "tiny",
+            "output_format": "all",
+            "language": "en",
+        },
     )
     assert response.status_code == 200
     assert "Hello from the browser." in response.text
+    assert "interview.mp4" in response.text
     assert "/download/" in response.text
     assert "<!doctype html>" not in response.text
     assert len(list(tmp_path.glob("*/transcript.*"))) == 4

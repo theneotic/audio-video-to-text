@@ -29,11 +29,12 @@
         <span class="rounded-md bg-wash px-2 py-1 font-mono text-[10px] text-moss">MAX {{ max_upload_mb }} MB</span>
       </div>
 
-      <form action="/transcribe" method="post" enctype="multipart/form-data" hx-post="/transcribe" hx-target="#app-panel" hx-swap="innerHTML" hx-encoding="multipart/form-data" hx-indicator="#loading-state" hx-disabled-elt="this">
+      <form id="transcription-form" action="/transcribe" method="post" enctype="multipart/form-data" hx-post="/transcribe" hx-target="#app-panel" hx-swap="innerHTML" hx-encoding="multipart/form-data" hx-indicator="#loading-state" hx-disabled-elt="this">
         <label id="drop-zone" for="file" class="group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-paper/70 px-4 text-center transition hover:border-moss hover:bg-wash/60">
           <span class="mb-3 grid h-10 w-10 place-items-center rounded-full border border-line bg-white font-display text-2xl leading-none text-rust transition group-hover:-translate-y-0.5">+</span>
           <span id="file-name" class="text-sm font-semibold text-ink">Choose a file</span>
           <span class="mt-1.5 text-xs leading-5 text-slate-500">MP3, WAV, M4A, MP4, MKV, MOV, WEBM, or FLAC</span>
+          <span class="mt-2 max-w-sm text-[11px] leading-5 text-slate-500">Files above 4 MB are compressed to audio locally in your browser before upload, so larger videos can still be tested privately.</span>
           <input id="file" name="file" type="file" accept="audio/*,video/*" required class="sr-only">
         </label>
 
@@ -49,6 +50,7 @@
         <label class="mt-5 flex cursor-pointer items-center gap-2.5 text-xs text-slate-600"><input name="word_timestamps" type="checkbox" value="true" class="h-4 w-4 rounded border-line accent-moss"> Include word-level timestamps in JSON</label>
         <button type="submit" class="mt-6 flex w-full items-center justify-center gap-3 rounded-lg bg-ink px-5 py-3.5 text-sm font-bold text-paper transition hover:bg-moss disabled:cursor-wait disabled:opacity-60"><span>Transcribe media</span><span class="text-base text-rust">→</span></button>
         <div id="loading-state" class="htmx-indicator mt-4 flex items-center justify-center gap-2 text-xs text-moss"><span class="spinner"></span> Transcribing — this can take a moment</div>
+        <p id="upload-status" class="mt-3 min-h-5 text-center text-xs text-slate-500" role="status" aria-live="polite"></p>
       </form>
     </section>
 

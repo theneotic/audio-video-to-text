@@ -159,6 +159,7 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
     async def transcribe_endpoint(
         request: Request,
         file: UploadFile = File(...),
+        original_filename: str = Form(""),
         model: str = Form("small"),
         output_format: str = Form("txt"),
         language: str = Form(""),
@@ -168,6 +169,7 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
         word_timestamps: bool = Form(False),
     ) -> HTMLResponse:
         filename = Path(file.filename or "").name
+        display_filename = Path(original_filename or filename).name
         extension = Path(filename).suffix.lower()
         if not filename or extension not in SUPPORTED_EXTENSIONS:
             return _error_response(
@@ -219,7 +221,7 @@ def create_app(job_root: str | Path | None = None) -> FastAPI:
             request=request,
             name=("result_fragment.html" if request.headers.get("HX-Request") == "true" else "result.html"),
             context={
-                "filename": filename,
+                "filename": display_filename,
                 "result": result,
                 "files": output_files,
                 "model": model,
