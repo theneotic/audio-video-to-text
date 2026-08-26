@@ -55,18 +55,42 @@ async def _save_upload(upload: UploadFile, destination: Path) -> int:
     return size
 
 
+def _select_job_root(job_root: str | Path | None) -> Path:
+    """Return a writable job directory, falling back to the system temp path."""
+    if job_root is not None:
+        candidates = [Path(job_root)]
+    else:
+        configured = os.getenv("MEDIA_TO_TEXT_JOB_ROOT")
+        candidates = [Path(configured)] if configured else []
+        serverless_hint = os.getenv("VERCEL") or Path.cwd().name.startswith("sbx_")
+        if serverless_hint:
+            candidates.append(Path("/tmp/media_to_text_jobs"))
+        else:
+            candidates.extend([Path.cwd() / ".media_to_text_jobs", Path("/tmp/media_to_text_jobs")])
+
+    last_error: OSError | None = None
+    for candidate in candidates:
+        root = candidate.expanduser().resolve()
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            probe = root / f".write-check-{uuid.uuid4().hex}"
+            probe.touch(exist_ok=False)
+            probe.unlink()
+            return root
+        except OSError as exc:
+            last_error = exc
+    raise OSError("No writable job directory is available for uploaded media.") from last_error
+
+
 def create_app(job_root: str | Path | None = None) -> FastAPI:
     """Create a configured FastAPI application.
 
     ``job_root`` is injectable for tests and can be used by deployments that
-    want temporary jobs on a dedicated volume.
+    want temporary jobs on a dedicated volume. If the configured location is
+    read-only, the application safely falls back to ``/tmp/media_to_text_jobs``.
     """
     package_dir = Path(__file__).parent
-    default_job_root = os.getenv("MEDIA_TO_TEXT_JOB_ROOT")
-    if not job_root and not default_job_root:
-        default_job_root = "/tmp/media_to_text_jobs" if os.getenv("VERCEL") else str(Path.cwd() / ".media_to_text_jobs")
-    root = Path(job_root or default_job_root).expanduser().resolve()
-    root.mkdir(parents=True, exist_ok=True)
+    root = _select_job_root(job_root)
     templates = Jinja2Templates(directory=str(package_dir / "templates"))
 
     app = FastAPI(title="Media to Text", version="0.1.0")

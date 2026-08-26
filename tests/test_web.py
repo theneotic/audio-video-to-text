@@ -163,3 +163,13 @@ def test_vercel_uses_writable_tmp_job_directory(monkeypatch) -> None:
     monkeypatch.setenv("VERCEL", "1")
     app = create_app()
     assert app.state.job_root == Path("/tmp/media_to_text_jobs")
+
+
+def test_serverless_workdir_uses_writable_tmp_job_directory(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.delenv("MEDIA_TO_TEXT_JOB_ROOT", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+    serverless_workdir = tmp_path / "sbx_user1234"
+    serverless_workdir.mkdir()
+    monkeypatch.chdir(serverless_workdir)
+    app = create_app()
+    assert app.state.job_root == Path("/tmp/media_to_text_jobs")
