@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -65,6 +66,19 @@ def _segment_from_whisper(index: int, segment: Any) -> Segment:
     )
 
 
+def _configure_model_cache() -> None:
+    """Keep Hugging Face model/cache writes off read-only serverless homes."""
+    if not (os.getenv("VERCEL") or Path.cwd().name.startswith("sbx_")):
+        return
+
+    cache_root = Path("/tmp/media_to_text_hf_cache")
+    cache_root.mkdir(parents=True, exist_ok=True)
+    os.environ["HF_HOME"] = str(cache_root)
+    os.environ["HUGGINGFACE_HUB_CACHE"] = str(cache_root / "hub")
+    os.environ["TRANSFORMERS_CACHE"] = str(cache_root / "transformers")
+    os.environ["XDG_CACHE_HOME"] = str(cache_root / "xdg")
+
+
 def transcribe_file(
     input_path: str | Path,
     *,
@@ -90,6 +104,7 @@ def transcribe_file(
     if beam_size < 1:
         raise ValueError("beam_size must be at least 1")
 
+    _configure_model_cache()
     try:
         from faster_whisper import WhisperModel
     except ImportError as exc:  # pragma: no cover - exercised by users without deps

@@ -158,6 +158,18 @@ def test_invalid_download_returns_404(tmp_path: Path) -> None:
     assert response.status_code == 404
 
 
+def test_serverless_model_cache_uses_writable_tmp_directory(monkeypatch, tmp_path: Path) -> None:
+    from media_to_text import core
+
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "read-only-home"))
+    core._configure_model_cache()
+    assert core.os.environ["HF_HOME"] == "/tmp/media_to_text_hf_cache"
+    assert core.os.environ["HUGGINGFACE_HUB_CACHE"] == "/tmp/media_to_text_hf_cache/hub"
+    assert core.os.environ["TRANSFORMERS_CACHE"] == "/tmp/media_to_text_hf_cache/transformers"
+    assert core.os.environ["XDG_CACHE_HOME"] == "/tmp/media_to_text_hf_cache/xdg"
+
+
 def test_vercel_uses_writable_tmp_job_directory(monkeypatch) -> None:
     monkeypatch.delenv("MEDIA_TO_TEXT_JOB_ROOT", raising=False)
     monkeypatch.setenv("VERCEL", "1")
