@@ -1,5 +1,24 @@
 # Media to Text
 
+> **A local audio and video transcription toolkit built around Faster-Whisper, with command-line and browser-oriented workflows.**
+
+| Project lens | Details |
+| --- | --- |
+| **Type** | Local media utility |
+| **Stack** | Python · Faster-Whisper |
+| **Status** | Actively maintained |
+
+## Overview
+
+A local audio and video transcription toolkit built around Faster-Whisper, with command-line and browser-oriented workflows. This README keeps the project’s verified setup, usage, privacy, and implementation notes together in one place.
+
+## Repository Snapshot
+
+The top-level workspace currently includes `Dockerfile`, `LICENSE`, `README.md`, `pyproject.toml`, `render.yaml`, `requirements.txt`, `src/`, `tests/`, `vercel.json`. Review the project-specific sections below before installing dependencies, supplying configuration values, or running a build.
+
+
+---
+
 A local-first Python application for turning audio and video recordings into searchable text and subtitle files. It provides both a command-line interface and a browser interface built with FastAPI, Tailwind CSS, and HTMX. Transcription is performed locally with [Faster-Whisper](https://github.com/SYSTRAN/faster-whisper), so the project does not require a hosted transcription API.
 
 > **Status:** The project is intentionally small and self-hostable. It is a practical starting point for personal transcription, internal tools, and experiments with local speech recognition.
